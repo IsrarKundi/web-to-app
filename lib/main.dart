@@ -61,6 +61,7 @@ class WebViewPage extends StatefulWidget {
 class WebViewPageState extends State<WebViewPage> {
   late WebViewController _controller;
   bool _hasInternet = true;
+  String? _currentUrl;
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
   @override
@@ -75,10 +76,14 @@ class WebViewPageState extends State<WebViewPage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
+          onPageFinished: (String url) {
+            // Update the current URL when a page finishes loading
+            setState(() {
+              _currentUrl = url;
+            });
+          },
           onWebResourceError: (WebResourceError error) {
-            // ScaffoldMessenger.of(context).showSnackBar(
-            //   SnackBar(content: Text('Failed to load page: ${error.description}')),
-            // );
+            // Optionally handle errors without showing a SnackBar
           },
         ),
       )
@@ -100,7 +105,9 @@ class WebViewPageState extends State<WebViewPage> {
       setState(() {
         _hasInternet = hasInternet;
       });
-      if (hasInternet) {
+      if (hasInternet && _currentUrl != null) {
+        _controller.loadRequest(Uri.parse(_currentUrl!));
+      } else if (hasInternet) {
         _controller.loadRequest(Uri.parse('https://everydayfrance.com'));
       }
     });
@@ -129,11 +136,7 @@ class WebViewPageState extends State<WebViewPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.signal_wifi_off,
-              size: 60,
-              color: Colors.red,
-            ),
+            Image.asset("assets/pngs/no_internet.png", width: 70, height: 70),
             const SizedBox(height: 16),
             Text(
               'No Internet Connection',
@@ -150,19 +153,7 @@ class WebViewPageState extends State<WebViewPage> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () async {
-                final result = await Connectivity().checkConnectivity();
-                if (result.isNotEmpty && !result.contains(ConnectivityResult.none)) {
-                  setState(() {
-                    _hasInternet = true;
-                  });
-                  _controller.loadRequest(Uri.parse('https://everydayfrance.com'));
-                }
-              },
-              child: const Text('Retry'),
-            ),
+
           ],
         ),
       ),
